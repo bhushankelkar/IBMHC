@@ -1,9 +1,11 @@
-from cloudant import Cloudant #!!COMMENTED FROM BHUSHAN'S CODE!!
 import time
-import atexit #!!COMMENTED FROM BHUSHAN'S CODE!!
-from tweepy import Stream
+from datetime import datetime
+from datetime import timedelta
+# from datetime import time as times
 from tweepy import OAuthHandler
 from tweepy.streaming import StreamListener
+from tweepy import Stream
+from tweepy import OAuthHandler
 import json
 from textblob import TextBlob
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -16,119 +18,16 @@ import pickle
 import joblib
 import pandas as pd
 import numpy as np
-import nltk
-nltk.download('stopwords')
-nltk.download('wordnet')
-nltk.download('punkt')
 from nltk.corpus import stopwords
+import nltk
 # import re
 import string
-import os
-from cloudant import Cloudant
-from flask import Flask, render_template, request, jsonify
-import atexit
-import os
-import json
-
-
-
-app = Flask(__name__, static_url_path='')
-
-db_name = 'live'
-client = None
-db = None
-
-if 'VCAP_SERVICES' in os.environ:
-    vcap = json.loads(os.getenv('VCAP_SERVICES'))
-    print('Found VCAP_SERVICES')
-    if 'cloudantNoSQLDB' in vcap:
-        creds = vcap['cloudantNoSQLDB'][0]['credentials']
-        user = creds['username']
-        apikey= creds['apikey']
-        url = 'https://' + creds['host']
-        client = Cloudant.iam(user,apikey,url=url, connect=True)
-        db = client.create_database(db_name, throw_on_exists=False)
-elif "CLOUDANT_URL" in os.environ:
-    client = Cloudant.iam(os.environ['CLOUDANT_USERNAME'], os.environ['CLOUDANT_APIKEY'], url=os.environ['CLOUDANT_URL'], connect=True)
-    db = client.create_database(db_name, throw_on_exists=False)
-elif os.path.isfile('vcap-local.json'):
-    with open('vcap-local.json') as f:
-        vcap = json.load(f)
-        print('Found local VCAP_SERVICES')
-        creds = vcap['services']['cloudantNoSQLDB'][0]['credentials']
-        user = creds['username']
-        password = creds['apikey']
-        url = 'https://' + creds['host']
-        client = Cloudant.iam(user, password, url=url, connect=True)
-        db = client.create_database(db_name, throw_on_exists=False)
-
-
-# On IBM Cloud Cloud Foundry, get the port number from the environment variable PORT
-# When running this app on the local machine, default the port to 8000
-
-
-
-
-# /**
-#  * Endpoint to get a JSON array of all the visitors in the database
-#  * REST API example:
-#  * <code>
-#  * GET http://localhost:8000/api/visitors
-#  * </code>
-#  *
-#  * Response:
-#  * [ "Bob", "Jane" ]
-#  * @return An array of all the visitor names
-#  */
-
-# sampleData = [
-#     [1, "one", "boiling", 100],
-#     [2, "two", "hot", 40],
-#     [3, "three", "warm", 20],
-#     [4, "four", "cold", 10],
-#     [5, "five", "freezing", 0]
-# ]
-
-# for document in sampleData:
-#     # Retrieve the fields in each row.
-#     number = document[0]
-#     name = document[1]
-#     description = document[2]
-#     temperature = document[3]
-
-    # Create a JSON document that represents
-    # all the data in the row.
-    # jsonDocument = {
-    #     "numberField": number,
-    #     "nameField": name,
-    #     "descriptionField": description,
-    #     "temperatureField": temperature
-    # }
-
-    # Create a document using the Database API.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
 "# -- coding: utf-8 --"
+
+
 # vector = pickle.load(open('vec', 'rb'))
 # vectorizer=vector['vector']
 vectorizer = pickle.load(open("vector.pickel", "rb"))
@@ -141,6 +40,8 @@ filename = 'logR.sav'
 
 # filename='logR.sav'
 loaded_model = joblib.load(open(filename, 'rb'))
+
+
 def calctime(a):
     return time.time() - a
 
@@ -156,7 +57,6 @@ initime = time.time()
 ps = PorterStemmer()
 wnl = WordNetLemmatizer()
 
-
 ckey = 'WnyAgUaacX1YheRSJqwMhhZgR'
 csecret = 'LzHg7GuAfJNIsHRpRXEk72TaEjcG5RL9yl85c0rbI1V1pg6rHQ'
 atoken = "1125091796046843905-DNeIxEe9RNwlwzZZXwXEW3VJFlv7Az"
@@ -164,6 +64,7 @@ asecret = "n3Yc9GzA2Saa6LNPZ5465WdQNj06G6hBrqcWnpwkc4jCb"
 
 js=pd.DataFrame(columns=['text','labels'])
 tl=[]
+
 class listener(StreamListener):
 
     def on_data(self, data):
@@ -171,11 +72,17 @@ class listener(StreamListener):
         global tl
         all_data = json.loads(data)
         tweet = all_data["text"]
-
+        dt=all_data['created_at']
+        dt=dt.split(" ")
+        local_datetime = datetime.now()
+        dt=dt[3]
+        dt= datetime.strptime(dt, '%H:%M:%S').time()
+        tmp_datetime =datetime.combine(datetime.today(), dt)
+        dt=(tmp_datetime+timedelta(hours=5,minutes=30)).time()
         # username=all_data["user"]["screen_name"]
         # tweet = " ".join(re.findall("[a-zA-Z]+", tweet))
         #
-        global db
+
         # print(tweet)
         global ps
         global wnl
@@ -231,7 +138,7 @@ class listener(StreamListener):
         print(t)
         # print(loaded_model)
         # print(vectorizer)
-        # tl.append({'tweet':tweet,'label':m[0]})
+        tl.append({'tweet':tweet,'label':m[0]})
         global positive
         global negative
         global neutral
@@ -259,37 +166,14 @@ class listener(StreamListener):
         print("pos ",positive)
         print("neg",negative)
         print("neu",neutral)
-        # k={"_id":count,"pos":positive,"neg":negative,"time":t,"details":tl}
-        k=str(k)
-
-        label=int(m[0])
-            # Retrieve the fields in each row.
-        # number = positive
-        # name = negative
-        # description = t
-        # temperature = tl
-            #
-            # Create a JSON document that represents
-            # all the data in the row.
-        json_document = {
-                "positive": positive,
-                "negative": negative,
-                "neutral": neutral,
-                "time":t,
-                "tweet":k,
-                "labels":label
-                # "temperatureField": temperature
-            }
-            #
-            # Create a document by using the database API.
-        new_document = db.create_document(json_document)
-            #
-            # Check that the document exists in the database.
-        if new_document.exists():
-                print(f"Document '{positive}' successfully created.")
-        # jsonDocument = k
-        # newDocument = db.create_document(k)
-        # db.create_document(k)
+        k={"pos":positive,"neg":negative,'neu':neutral,"details":tl,"time":dt}
+        s=pd.DataFrame(k)
+        print(s)
+        try:
+            s.to_json('count.json')
+            tl=[]
+        except:
+            print("couldnt")
         # u=positive+negative+neutral
         sen=[positive,negative,neutral]
         # print(sen)
@@ -322,28 +206,18 @@ class listener(StreamListener):
         # except:
         #     print("cannot")
         #     pass
-        if count == 10:
+        if count == 200:
             return False
 
         else:
             return True
 
-    def on_error(self, status_code):
-        if status_code == 420:
-            # return False to disconnect the stream
-           return False
+    def on_error(self, status):
+        print(status)
 
 
 auth = OAuthHandler(ckey, csecret)
 auth.set_access_token(atoken, asecret)
+
 twitterStream = Stream(auth, listener(count),lang='en',geocode="22.3511148,78.6677428,1km")
 twitterStream.filter(track=["#IndiaFightsCorona","covid19 india","corona india","#covid19#india","corona warriors","#cluelessbjp"])
-
-        # time.sleep(5)
-		
-port = int(os.getenv('PORT', 8000))
-
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=port, debug=True)
-
-

@@ -31,10 +31,11 @@ import pickle
 import string
 import joblib
 from nltk.corpus import stopwords
+
 lemma = WordNetLemmatizer()
 
 app = dash.Dash(__name__)
-
+neu=0
 pos = 0
 neg = 0
 time = 0
@@ -45,7 +46,7 @@ vectorizer.fit(x_train)
 print(vectorizer)
 print(len(vectorizer.get_feature_names()))
 filename = 'logR.sav'
-tf2=pd.DataFrame(columns=['pos','neg','time'])
+tf2=pd.DataFrame(columns=['pos','neg','neu','time'])
 loaded_model = joblib.load(open(filename, 'rb'))
 positive = 0
 negative = 0
@@ -53,7 +54,7 @@ neutral = 0
 compound=0
 ps = PorterStemmer()
 wnl = WordNetLemmatizer()
-cal={'val':['positive','negative'],'count':[positive,negative]}
+cal={'val':['positive','negative','neutral'],'count':[positive,negative,neutral]}
 cal=pd.DataFrame(cal)
 
 df1 = pd.read_csv('Lockdowns/lock1.csv',encoding='latin')
@@ -268,7 +269,7 @@ app.layout =  html.Div([
     dcc.Tabs(id="tabs", value='tab-1', children=[
     dcc.Tab(label='Live Tweets', value='tab-1',children=[dcc.Interval(
         id='interval-component-slow',
-        interval=1 * 9000,
+        interval=1*1000,
         n_intervals=0  # in milliseconds
         )]),
         dcc.Tab(label='Lockdown 1.0', value='tab-2'),
@@ -515,7 +516,7 @@ figloc4.update_layout(
 
 
 #----------------------------------------WATSON TONE ANALYSER------------------------------------------------------------
-tone=pd.read_csv('lock1ToneAnalyser.csv')
+tone=pd.read_csv('Tone Analyser/Lock1ToneAnalyser.csv')
 count_sad=tone['sadness'].sum()
 count_joy=tone['joy'].sum()
 count_confident=tone['confident'].sum()
@@ -557,7 +558,7 @@ fig1.update_layout( title ="Bar Chart",
 fig1.update_xaxes(tickfont=dict(size=25))
 
 #--------------------Lockdown2----------------------
-tone=pd.read_csv('Lock2ToneAnalyser.csv')
+tone=pd.read_csv('Tone Analyser/Lock2ToneAnalyser.csv')
 count_sad=tone['sadness'].sum()
 count_joy=tone['joy'].sum()
 count_confident=tone['confident'].sum()
@@ -599,7 +600,7 @@ fig1loc2.update_layout( title ="Bar Chart",
 fig1loc2.update_xaxes(tickfont=dict(size=25))
 
 #--------------------Lockdown3----------------------
-tone=pd.read_csv('Lock3ToneAnalyser.csv')
+tone=pd.read_csv('Tone Analyser/Lock3ToneAnalyser.csv')
 count_sad=tone['sadness'].sum()
 count_joy=tone['joy'].sum()
 count_confident=tone['confident'].sum()
@@ -641,7 +642,7 @@ fig1loc3.update_layout( title ="Bar Chart",
 fig1loc3.update_xaxes(tickfont=dict(size=25))
 
 #----------------Lockdown4-------------------
-tone=pd.read_csv('Lock4ToneAnalyser.csv')
+tone=pd.read_csv('Tone Analyser/Lock4ToneAnalyser.csv')
 count_sad=tone['sadness'].sum()
 count_joy=tone['joy'].sum()
 count_confident=tone['confident'].sum()
@@ -829,15 +830,28 @@ ty_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
 ty_lock4_neu=(d4['labels'][d4['labels']==0]).count()
 
 lockdown=['Lockdown 1.0', 'Lockdown 2.0', 'Lockdown 3.0','Lockdown 4.0']
-totallock1 = ty_lock1_pos+ty_lock1_neg+ty_lock1_neu
-totallock2 = ty_lock2_pos+ty_lock2_neg+ty_lock2_neu
-totallock3 = ty_lock3_pos+ty_lock3_neg+ty_lock3_neu
-totallock4 = ty_lock3_pos+ty_lock4_neg+ty_lock4_neu
+
+neglock1 = (ty_lock1_neg)/(ty_lock1_pos+ty_lock1_neg+ty_lock1_neu)
+neglock2 = (ty_lock2_neg)/(ty_lock2_pos+ty_lock2_neg+ty_lock2_neu)
+neglock3 = (ty_lock3_neg)/(ty_lock3_pos+ty_lock3_neg+ty_lock3_neu)
+neglock4 = (ty_lock4_neg)/(ty_lock3_pos+ty_lock4_neg+ty_lock4_neu)
+ 
+poslock1 = (ty_lock1_pos)/(ty_lock1_pos+ty_lock1_neg+ty_lock1_neu)
+poslock2 = (ty_lock2_pos)/(ty_lock2_pos+ty_lock2_neg+ty_lock2_neu)
+poslock3 = (ty_lock3_pos)/(ty_lock3_pos+ty_lock3_neg+ty_lock3_neu)
+poslock4 = (ty_lock4_pos)/(ty_lock3_pos+ty_lock4_neg+ty_lock4_neu)
+
+neulock1 = (ty_lock1_neu)/(ty_lock1_pos+ty_lock1_neg+ty_lock1_neu)
+neulock2 = (ty_lock2_neu)/(ty_lock2_pos+ty_lock2_neg+ty_lock2_neu)
+neulock3 = (ty_lock3_neu)/(ty_lock3_pos+ty_lock3_neg+ty_lock3_neu)
+neulock4 = (ty_lock4_neu)/(ty_lock3_pos+ty_lock4_neg+ty_lock4_neu)
+
+print(neglock1+poslock1+neulock1)
 
 figty = go.Figure(data=[
-    go.Bar(name='Negative', x=lockdown,y=['0.8','0.09','0.33','0.98'],textposition='auto'),
-    go.Bar(name='Positive', x=lockdown,y=['0.77','0.77','0.3','0.44'],textposition='auto')
-    go.Bar(name='Neutral', x=lockdown,y=['0.77','0.77','0.3','0.44'],textposition='auto')
+    go.Bar(name='Negative', x=lockdown,y=[neglock1,neglock2,neglock3,neglock4],textposition='auto'),
+    go.Bar(name='Positive', x=lockdown,y=[poslock1,poslock2,poslock3,poslock4],textposition='auto'),
+    go.Bar(name='Neutral', x=lockdown,y=[neulock1,neulock2,neulock3,neulock4],textposition='auto')
 
 ])
 # Change the bar mode
@@ -854,38 +868,56 @@ figty.update_layout(barmode='group',
                 plot_bgcolor="#07031a",
                 #uniformtext_minsize=8, 
                 #uniformtext_mode='hide',
-                title_text="Emotional Trends in Lockdown 1.0",
+                title_text="Reaction of people to events of positivity",
                 xaxis=dict(showgrid=False),
                 yaxis=dict(showgrid=False),
                 yaxis_tickformat=',.0%',
-                yaxis_range=[0,1]
-
-
-    )
-figty.update_yaxes(showticklabels=True)S
+                yaxis_range=[0,1],
+                )
+figty.update_yaxes(showticklabels=True)
 #-------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------NEGATIVE-------------------------------------------------------------
-d1=pd.read_csv('./China/Lock1.csv')
-d2=pd.read_csv('./China/Lock2.csv')
-d3=pd.read_csv('./China/Lock3.csv')
-d4=pd.read_csv('./China/Lock4.csv')
-china_lock1_pos=(d1['labels'][d1['labels']==1]).count()
-china_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
-china_lock2_pos=(d2['labels'][d2['labels']==1]).count()
-china_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
-china_lock3_pos=(d3['labels'][d3['labels']==1]).count()
-china_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
-china_lock4_pos=(d4['labels'][d4['labels']==1]).count()
-china_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+d1=pd.read_csv('Hashtag Analysis/Negative/Lock1.csv')
+d2=pd.read_csv('Hashtag Analysis/Negative/Lock2.csv')
+d3=pd.read_csv('Hashtag Analysis/Negative/Lock3.csv')
+d4=pd.read_csv('Hashtag Analysis/Negative/Lock4.csv')
+
+nega_lock1_pos=(d1['labels'][d1['labels']==1]).count()
+nega_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
+nega_lock1_neu=(d1['labels'][d1['labels']==0]).count()
+nega_lock2_pos=(d2['labels'][d2['labels']==1]).count()
+nega_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
+nega_lock2_neu=(d2['labels'][d2['labels']==0]).count()
+nega_lock3_pos=(d3['labels'][d3['labels']==1]).count()
+nega_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
+nega_lock3_neu=(d3['labels'][d3['labels']==0]).count()
+nega_lock4_pos=(d4['labels'][d4['labels']==1]).count()
+nega_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+nega_lock4_neu=(d4['labels'][d4['labels']==0]).count()
 
 lockdown=['Lockdown 1.0', 'Lockdown 2.0', 'Lockdown 3.0','Lockdown 4.0']
 
-figchina = go.Figure(data=[
-    go.Bar(name='Negative', x=lockdown,y=['0.8','0.09','0.33','0.98'],textposition='auto'),
-    go.Bar(name='Positive', x=lockdown,y=['0.77','0.77','0.3','0.44'],textposition='auto')
+
+fignega = go.Figure(data=[
+    go.Bar(name='Negative', x=lockdown,y=[(nega_lock1_neg)/(nega_lock1_pos+nega_lock1_neg+nega_lock1_neu)
+,(nega_lock2_neg)/(nega_lock2_pos+nega_lock2_neg+nega_lock2_neu)
+,(nega_lock3_neg)/(nega_lock3_pos+nega_lock3_neg+nega_lock3_neu)
+,(nega_lock4_neg)/(nega_lock4_pos+nega_lock4_neg+nega_lock4_neu)
+],textposition='auto'),
+    go.Bar(name='Positive', x=lockdown,y=[(nega_lock1_pos)/(nega_lock1_pos+nega_lock1_neg+nega_lock1_neu)
+,(nega_lock2_pos)/(nega_lock2_pos+nega_lock2_neg+nega_lock2_neu)
+,(nega_lock3_pos)/(nega_lock3_pos+nega_lock3_neg+nega_lock3_neu)
+,(nega_lock4_pos)/(nega_lock4_pos+nega_lock4_neg+nega_lock4_neu)
+],textposition='auto'),
+    go.Bar(name='Neutral', x=lockdown,y=[(nega_lock1_neu)/(nega_lock1_pos+nega_lock1_neg+nega_lock1_neu)
+,(nega_lock2_neu)/(nega_lock2_pos+nega_lock2_neg+nega_lock2_neu)
+,(nega_lock3_neu)/(nega_lock3_pos+nega_lock3_neg+nega_lock3_neu)
+,(nega_lock4_neu)/(nega_lock4_pos+nega_lock4_neg+nega_lock4_neu)
+],textposition='auto')
+
 ])
 # Change the bar mode
-figchina.update_layout(barmode='group',
+fignega.update_layout(barmode='group',
                 title ="Line Chart",
                 font=dict(
                     family="Courier New,monospace",
@@ -898,7 +930,7 @@ figchina.update_layout(barmode='group',
                 plot_bgcolor="#07031a",
                 #uniformtext_minsize=8, 
                 #uniformtext_mode='hide',
-                title_text="Emotional Trends in Lockdown 1.0",
+                title_text="Reaction of the people towards negative events",
                 xaxis=dict(showgrid=False),
                 yaxis=dict(showgrid=False),
                 yaxis_tickformat=',.0%',
@@ -906,30 +938,35 @@ figchina.update_layout(barmode='group',
 
 
     )
-figchina.update_yaxes(showticklabels=True)
+fignega.update_yaxes(showticklabels=True)
 #-------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------WFH-------------------------------------------------------------
-d1=pd.read_csv('./China/Lock1.csv')
-d2=pd.read_csv('./China/Lock2.csv')
-d3=pd.read_csv('./China/Lock3.csv')
-d4=pd.read_csv('./China/Lock4.csv')
-china_lock1_pos=(d1['labels'][d1['labels']==1]).count()
-china_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
-china_lock2_pos=(d2['labels'][d2['labels']==1]).count()
-china_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
-china_lock3_pos=(d3['labels'][d3['labels']==1]).count()
-china_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
-china_lock4_pos=(d4['labels'][d4['labels']==1]).count()
-china_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+d1=pd.read_csv('Hashtag Analysis/WFH/Lock1.csv')
+d2=pd.read_csv('Hashtag Analysis/WFH/Lock2.csv')
+d3=pd.read_csv('Hashtag Analysis/WFH/Lock2.csv')
+d4=pd.read_csv('Hashtag Analysis/WFH/Lock2.csv')
+wfh_lock1_pos=(d1['labels'][d1['labels']==1]).count()
+wfh_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
+wfh_lock1_neu=(d1['labels'][d1['labels']==0]).count()
+wfh_lock2_pos=(d2['labels'][d2['labels']==1]).count()
+wfh_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
+wfh_lock2_neu=(d2['labels'][d2['labels']==0]).count()
+wfh_lock3_pos=(d3['labels'][d3['labels']==1]).count()
+wfh_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
+wfh_lock3_neu=(d3['labels'][d3['labels']==0]).count()
+wfh_lock4_pos=(d4['labels'][d4['labels']==1]).count()
+wfh_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+wfh_lock4_neu=(d4['labels'][d4['labels']==0]).count()
 
 lockdown=['Lockdown 1.0', 'Lockdown 2.0', 'Lockdown 3.0','Lockdown 4.0']
 
-figchina = go.Figure(data=[
-    go.Bar(name='Negative', x=lockdown,y=['0.8','0.09','0.33','0.98'],textposition='auto'),
-    go.Bar(name='Positive', x=lockdown,y=['0.77','0.77','0.3','0.44'],textposition='auto')
+figwfh = go.Figure(data=[
+    go.Bar(name='Negative', x=lockdown,y=[(wfh_lock1_neg)/(wfh_lock1_pos+wfh_lock1_neg+wfh_lock1_neu),(wfh_lock2_neg)/(wfh_lock2_pos+wfh_lock2_neg+wfh_lock2_neu),(wfh_lock3_neg)/(wfh_lock3_pos+wfh_lock3_neg+wfh_lock3_neu),(wfh_lock4_neg)/(wfh_lock4_pos+wfh_lock4_neg+wfh_lock4_neu)],textposition='auto'),
+    go.Bar(name='Positive', x=lockdown,y=[(wfh_lock1_pos)/(wfh_lock1_pos+wfh_lock1_neg+wfh_lock1_neu),(wfh_lock2_pos)/(wfh_lock2_pos+wfh_lock2_neg+wfh_lock2_neu),(wfh_lock3_pos)/(wfh_lock3_pos+wfh_lock3_neg+wfh_lock3_neu),(wfh_lock4_pos)/(wfh_lock4_pos+wfh_lock4_neg+wfh_lock4_neu)],textposition='auto'),
+    go.Bar(name='Neutral', x=lockdown,y=[(wfh_lock1_neu)/(wfh_lock1_pos+wfh_lock1_neg+wfh_lock1_neu),(wfh_lock2_neu)/(wfh_lock2_pos+wfh_lock2_neg+wfh_lock2_neu),(wfh_lock3_neu)/(wfh_lock1_pos+wfh_lock1_neg+wfh_lock1_neu),(wfh_lock4_neu)/(wfh_lock4_pos+wfh_lock4_neg+wfh_lock4_neu)],textposition='auto')
 ])
 # Change the bar mode
-figchina.update_layout(barmode='group',
+figwfh.update_layout(barmode='group',
                 title ="Line Chart",
                 font=dict(
                     family="Courier New,monospace",
@@ -942,7 +979,7 @@ figchina.update_layout(barmode='group',
                 plot_bgcolor="#07031a",
                 #uniformtext_minsize=8, 
                 #uniformtext_mode='hide',
-                title_text="Emotional Trends in Lockdown 1.0",
+                title_text="Work from home? Urghhh... OR Yayyy",
                 xaxis=dict(showgrid=False),
                 yaxis=dict(showgrid=False),
                 yaxis_tickformat=',.0%',
@@ -950,30 +987,137 @@ figchina.update_layout(barmode='group',
 
 
     )
-figchina.update_yaxes(showticklabels=True)
+figwfh.update_yaxes(showticklabels=True)
+#--------------------------------------------------------------------------------------------------------------
+#----------------------------------------------Mental Health-------------------------------------------------------------
+d1=pd.read_csv('Hashtag Analysis/Mental Health/Lock1.csv')
+d2=pd.read_csv('Hashtag Analysis/Mental Health/Lock2.csv')
+d3=pd.read_csv('Hashtag Analysis/Mental Health/Lock3.csv')
+d4=pd.read_csv('Hashtag Analysis/Mental Health/Lock4.csv')
+
+mh_lock1_pos=(d1['labels'][d1['labels']==1]).count()
+mh_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
+mh_lock1_neu=(d1['labels'][d1['labels']==0]).count()
+mh_lock2_pos=(d2['labels'][d2['labels']==1]).count()
+mh_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
+mh_lock2_neu=(d2['labels'][d2['labels']==0]).count()
+mh_lock3_pos=(d3['labels'][d3['labels']==1]).count()
+mh_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
+mh_lock3_neu=(d3['labels'][d3['labels']==0]).count()
+mh_lock4_pos=(d4['labels'][d4['labels']==1]).count()
+mh_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+mh_lock4_neu=(d4['labels'][d4['labels']==0]).count()
+
+lockdown=['Lockdown 1.0', 'Lockdown 2.0', 'Lockdown 3.0','Lockdown 4.0']
+
+figmh = go.Figure(data=[
+    go.Bar(name='Negative', x=lockdown,y=[(mh_lock1_neg)/(mh_lock1_pos+mh_lock1_neg+mh_lock1_neu),(mh_lock2_neg)/(mh_lock2_pos+mh_lock2_neg+mh_lock2_neu),(mh_lock3_neg)/(mh_lock3_pos+mh_lock3_neg+mh_lock3_neu),(mh_lock4_neg)/(mh_lock4_pos+mh_lock4_neg+mh_lock4_neu)],textposition='auto'),
+    go.Bar(name='Positive', x=lockdown,y=[(mh_lock1_pos)/(mh_lock1_pos+mh_lock1_neg+mh_lock1_neu),(mh_lock2_pos)/(mh_lock2_pos+mh_lock2_neg+mh_lock2_neu),(mh_lock3_pos)/(mh_lock3_pos+mh_lock3_neg+mh_lock3_neu),(mh_lock4_pos)/(mh_lock4_pos+mh_lock4_neg+mh_lock4_neu)],textposition='auto'),
+    go.Bar(name='Neutral', x=lockdown,y=[(mh_lock1_neu)/(mh_lock1_pos+mh_lock1_neg+mh_lock1_neu),(mh_lock2_neu)/(mh_lock2_pos+mh_lock2_neg+mh_lock2_neu),(mh_lock3_neu)/(mh_lock1_pos+mh_lock1_neg+mh_lock1_neu),(mh_lock4_neu)/(mh_lock4_pos+mh_lock4_neg+mh_lock4_neu)],textposition='auto')
+])
+# Change the bar mode
+figmh.update_layout(barmode='group',
+                title ="Line Chart",
+                font=dict(
+                    family="Courier New,monospace",
+                    size=14,
+                    color='white'
+
+                      ),
+
+                paper_bgcolor ="#07031a",
+                plot_bgcolor="#07031a",
+                #uniformtext_minsize=8, 
+                #uniformtext_mode='hide',
+                title_text="Mental health",
+                xaxis=dict(showgrid=False),
+                yaxis=dict(showgrid=False),
+                yaxis_tickformat=',.0%',
+                yaxis_range=[0,1]
+
+
+    )
+figmh.update_yaxes(showticklabels=True)
+
+#--------------------------------------------------------------------------------------------------------------
+#----------------------------------------------Economy------------------------------------------------------------
+d1=pd.read_csv('Hashtag Analysis/Economy/Lock1.csv')
+d2=pd.read_csv('Hashtag Analysis/Economy/Lock2.csv')
+d3=pd.read_csv('Hashtag Analysis/Economy/Lock3.csv')
+d4=pd.read_csv('Hashtag Analysis/Economy/Lock4.csv')
+
+eco_lock1_pos=(d1['labels'][d1['labels']==1]).count()
+eco_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
+eco_lock1_neu=(d1['labels'][d1['labels']==0]).count()
+eco_lock2_pos=(d2['labels'][d2['labels']==1]).count()
+eco_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
+eco_lock2_neu=(d2['labels'][d2['labels']==0]).count()
+eco_lock3_pos=(d3['labels'][d3['labels']==1]).count()
+eco_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
+eco_lock3_neu=(d3['labels'][d3['labels']==0]).count()
+eco_lock4_pos=(d4['labels'][d4['labels']==1]).count()
+eco_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+eco_lock4_neu=(d4['labels'][d4['labels']==0]).count()
+
+lockdown=['Lockdown 1.0', 'Lockdown 2.0', 'Lockdown 3.0','Lockdown 4.0']
+
+figeco = go.Figure(data=[
+    go.Bar(name='Negative', x=lockdown,y=[(eco_lock1_neg)/(eco_lock1_pos+eco_lock1_neg+eco_lock1_neu),(eco_lock2_neg)/(eco_lock2_pos+eco_lock2_neg+eco_lock2_neu),(eco_lock3_neg)/(eco_lock3_pos+eco_lock3_neg+eco_lock3_neu),(eco_lock4_neg)/(eco_lock4_pos+eco_lock4_neg+eco_lock4_neu)],textposition='auto'),
+    go.Bar(name='Positive', x=lockdown,y=[(eco_lock1_pos)/(eco_lock1_pos+eco_lock1_neg+eco_lock1_neu),(eco_lock2_pos)/(eco_lock2_pos+eco_lock2_neg+eco_lock2_neu),(eco_lock3_pos)/(eco_lock3_pos+eco_lock3_neg+eco_lock3_neu),(eco_lock4_pos)/(eco_lock4_pos+eco_lock4_neg+eco_lock4_neu)],textposition='auto'),
+    go.Bar(name='Neutral', x=lockdown,y=[(eco_lock1_neu)/(eco_lock1_pos+eco_lock1_neg+eco_lock1_neu),(eco_lock2_neu)/(eco_lock2_pos+eco_lock2_neg+eco_lock2_neu),(eco_lock3_neu)/(eco_lock1_pos+eco_lock1_neg+eco_lock1_neu),(eco_lock4_neu)/(eco_lock4_pos+eco_lock4_neg+eco_lock4_neu)],textposition='auto')
+])
+# Change the bar mode
+figeco.update_layout(barmode='group',
+                title ="Line Chart",
+                font=dict(
+                    family="Courier New,monospace",
+                    size=14,
+                    color='white'
+
+                      ),
+
+                paper_bgcolor ="#07031a",
+                plot_bgcolor="#07031a",
+                #uniformtext_minsize=8, 
+                #uniformtext_mode='hide',
+                title_text="How about Economy?",
+                xaxis=dict(showgrid=False),
+                yaxis=dict(showgrid=False),
+                yaxis_tickformat=',.0%',
+                yaxis_range=[0,1]
+
+
+    )
+figeco.update_yaxes(showticklabels=True)
 #-------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------GOVT-------------------------------------------------------------
-d1=pd.read_csv('./China/Lock1.csv')
-d2=pd.read_csv('./China/Lock2.csv')
-d3=pd.read_csv('./China/Lock3.csv')
-d4=pd.read_csv('./China/Lock4.csv')
-china_lock1_pos=(d1['labels'][d1['labels']==1]).count()
-china_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
-china_lock2_pos=(d2['labels'][d2['labels']==1]).count()
-china_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
-china_lock3_pos=(d3['labels'][d3['labels']==1]).count()
-china_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
-china_lock4_pos=(d4['labels'][d4['labels']==1]).count()
-china_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+#----------------------------------------------Govt------------------------------------------------------------
+d1=pd.read_csv('Hashtag Analysis/Govt/Lock1.csv')
+d2=pd.read_csv('Hashtag Analysis/Govt/Lock2.csv')
+d3=pd.read_csv('Hashtag Analysis/Govt/Lock3.csv')
+d4=pd.read_csv('Hashtag Analysis/Govt/Lock4.csv')
+
+govt_lock1_pos=(d1['labels'][d1['labels']==1]).count()
+govt_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
+govt_lock1_neu=(d1['labels'][d1['labels']==0]).count()
+govt_lock2_pos=(d2['labels'][d2['labels']==1]).count()
+govt_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
+govt_lock2_neu=(d2['labels'][d2['labels']==0]).count()
+govt_lock3_pos=(d3['labels'][d3['labels']==1]).count()
+govt_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
+govt_lock3_neu=(d3['labels'][d3['labels']==0]).count()
+govt_lock4_pos=(d4['labels'][d4['labels']==1]).count()
+govt_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+govt_lock4_neu=(d4['labels'][d4['labels']==0]).count()
 
 lockdown=['Lockdown 1.0', 'Lockdown 2.0', 'Lockdown 3.0','Lockdown 4.0']
 
-figchina = go.Figure(data=[
-    go.Bar(name='Negative', x=lockdown,y=['0.8','0.09','0.33','0.98'],textposition='auto'),
-    go.Bar(name='Positive', x=lockdown,y=['0.77','0.77','0.3','0.44'],textposition='auto')
+figgovt = go.Figure(data=[
+    go.Bar(name='Negative', x=lockdown,y=[(govt_lock1_neg)/(govt_lock1_pos+govt_lock1_neg+govt_lock1_neu),(govt_lock2_neg)/(govt_lock2_pos+govt_lock2_neg+govt_lock2_neu),(govt_lock3_neg)/(govt_lock3_pos+govt_lock3_neg+govt_lock3_neu),(govt_lock4_neg)/(govt_lock4_pos+govt_lock4_neg+govt_lock4_neu)],textposition='auto'),
+    go.Bar(name='Positive', x=lockdown,y=[(govt_lock1_pos)/(govt_lock1_pos+govt_lock1_neg+govt_lock1_neu),(govt_lock2_pos)/(govt_lock2_pos+govt_lock2_neg+govt_lock2_neu),(govt_lock3_pos)/(govt_lock3_pos+govt_lock3_neg+govt_lock3_neu),(govt_lock4_pos)/(govt_lock4_pos+govt_lock4_neg+govt_lock4_neu)],textposition='auto'),
+    go.Bar(name='Neutral', x=lockdown,y=[(govt_lock1_neu)/(govt_lock1_pos+govt_lock1_neg+govt_lock1_neu),(govt_lock2_neu)/(govt_lock2_pos+govt_lock2_neg+govt_lock2_neu),(govt_lock3_neu)/(govt_lock1_pos+govt_lock1_neg+govt_lock1_neu),(govt_lock4_neu)/(govt_lock4_pos+govt_lock4_neg+govt_lock4_neu)],textposition='auto')
 ])
 # Change the bar mode
-figchina.update_layout(barmode='group',
+figgovt.update_layout(barmode='group',
                 title ="Line Chart",
                 font=dict(
                     family="Courier New,monospace",
@@ -986,7 +1130,7 @@ figchina.update_layout(barmode='group',
                 plot_bgcolor="#07031a",
                 #uniformtext_minsize=8, 
                 #uniformtext_mode='hide',
-                title_text="Emotional Trends in Lockdown 1.0",
+                title_text="Reaction of the people towards Government",
                 xaxis=dict(showgrid=False),
                 yaxis=dict(showgrid=False),
                 yaxis_tickformat=',.0%',
@@ -994,30 +1138,36 @@ figchina.update_layout(barmode='group',
 
 
     )
-figchina.update_yaxes(showticklabels=True)
+figgovt.update_yaxes(showticklabels=True)
 #-------------------------------------------------------------------------------------------------------------------
-#----------------------------------------------EXTEND-------------------------------------------------------------
-d1=pd.read_csv('./China/Lock1.csv')
-d2=pd.read_csv('./China/Lock2.csv')
-d3=pd.read_csv('./China/Lock3.csv')
-d4=pd.read_csv('./China/Lock4.csv')
-china_lock1_pos=(d1['labels'][d1['labels']==1]).count()
-china_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
-china_lock2_pos=(d2['labels'][d2['labels']==1]).count()
-china_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
-china_lock3_pos=(d3['labels'][d3['labels']==1]).count()
-china_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
-china_lock4_pos=(d4['labels'][d4['labels']==1]).count()
-china_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+#----------------------------------------------Extend------------------------------------------------------------
+d1=pd.read_csv('Hashtag Analysis/Extend Spirit/Lock1.csv')
+d2=pd.read_csv('Hashtag Analysis/Extend Spirit/Lock2.csv')
+d3=pd.read_csv('Hashtag Analysis/Extend Spirit/Lock3.csv')
+d4=pd.read_csv('Hashtag Analysis/Extend Spirit/Lock4.csv')
+
+ext_lock1_pos=(d1['labels'][d1['labels']==1]).count()
+ext_lock1_neg=(d1['labels'][d1['labels']==-1]).count()
+ext_lock1_neu=(d1['labels'][d1['labels']==0]).count()
+ext_lock2_pos=(d2['labels'][d2['labels']==1]).count()
+ext_lock2_neg=(d2['labels'][d2['labels']==-1]).count()
+ext_lock2_neu=(d2['labels'][d2['labels']==0]).count()
+ext_lock3_pos=(d3['labels'][d3['labels']==1]).count()
+ext_lock3_neg=(d3['labels'][d3['labels']==-1]).count()
+ext_lock3_neu=(d3['labels'][d3['labels']==0]).count()
+ext_lock4_pos=(d4['labels'][d4['labels']==1]).count()
+ext_lock4_neg=(d4['labels'][d4['labels']==-1]).count()
+ext_lock4_neu=(d4['labels'][d4['labels']==0]).count()
 
 lockdown=['Lockdown 1.0', 'Lockdown 2.0', 'Lockdown 3.0','Lockdown 4.0']
 
-figchina = go.Figure(data=[
-    go.Bar(name='Negative', x=lockdown,y=['0.8','0.09','0.33','0.98'],textposition='auto'),
-    go.Bar(name='Positive', x=lockdown,y=['0.77','0.77','0.3','0.44'],textposition='auto')
+figext = go.Figure(data=[
+    go.Bar(name='Negative', x=lockdown,y=[(ext_lock1_neg)/(ext_lock1_pos+ext_lock1_neg+ext_lock1_neu),(ext_lock2_neg)/(ext_lock2_pos+ext_lock2_neg+ext_lock2_neu),(ext_lock3_neg)/(ext_lock3_pos+ext_lock3_neg+ext_lock3_neu),(ext_lock4_neg)/(ext_lock4_pos+ext_lock4_neg+ext_lock4_neu)],textposition='auto'),
+    go.Bar(name='Positive', x=lockdown,y=[(ext_lock1_pos)/(ext_lock1_pos+ext_lock1_neg+ext_lock1_neu),(ext_lock2_pos)/(ext_lock2_pos+ext_lock2_neg+ext_lock2_neu),(ext_lock3_pos)/(ext_lock3_pos+ext_lock3_neg+ext_lock3_neu),(ext_lock4_pos)/(ext_lock4_pos+ext_lock4_neg+ext_lock4_neu)],textposition='auto'),
+    go.Bar(name='Neutral', x=lockdown,y=[(ext_lock1_neu)/(ext_lock1_pos+ext_lock1_neg+ext_lock1_neu),(ext_lock2_neu)/(ext_lock2_pos+ext_lock2_neg+ext_lock2_neu),(ext_lock3_neu)/(ext_lock1_pos+ext_lock1_neg+ext_lock1_neu),(ext_lock4_neu)/(ext_lock4_pos+ext_lock4_neg+ext_lock4_neu)],textposition='auto')
 ])
 # Change the bar mode
-figchina.update_layout(barmode='group',
+figext.update_layout(barmode='group',
                 title ="Line Chart",
                 font=dict(
                     family="Courier New,monospace",
@@ -1030,21 +1180,35 @@ figchina.update_layout(barmode='group',
                 plot_bgcolor="#07031a",
                 #uniformtext_minsize=8, 
                 #uniformtext_mode='hide',
-                title_text="Emotional Trends in Lockdown 1.0",
+                title_text="Lockdown Extension?",
                 xaxis=dict(showgrid=False),
                 yaxis=dict(showgrid=False),
                 yaxis_tickformat=',.0%',
                 yaxis_range=[0,1]
-
+                
 
     )
-figchina.update_yaxes(showticklabels=True)
+figext.update_yaxes(showticklabels=True)
 #-------------------------------------------------------------------------------------------------------------------
 #----------------------------------------------------OVERALL Sentiment-----------------------------------------------
 figoverall = make_subplots(rows=1, cols=3)
 
+negloc1 = ext_lock1_neg + govt_lock1_neg + mh_lock1_neg + eco_lock1_neg + nega_lock1_neg + ty_lock1_neg + wfh_lock1_neg
+negloc2 = ext_lock2_neg + govt_lock2_neg + mh_lock2_neg + eco_lock2_neg + nega_lock2_neg + ty_lock2_neg + wfh_lock2_neg
+negloc3 = ext_lock3_neg + govt_lock3_neg + mh_lock3_neg + eco_lock3_neg + nega_lock3_neg + ty_lock3_neg + wfh_lock3_neg
+negloc4 = ext_lock4_neg + govt_lock4_neg + mh_lock4_neg + eco_lock4_neg + nega_lock4_neg + ty_lock4_neg + wfh_lock4_neg
+posloc1 = ext_lock1_pos + govt_lock1_pos + mh_lock1_pos + eco_lock1_pos + nega_lock1_pos + ty_lock1_pos + wfh_lock1_pos
+posloc2 = ext_lock2_pos + govt_lock2_pos + mh_lock2_pos + eco_lock2_pos + nega_lock2_pos + ty_lock2_pos + wfh_lock2_pos
+posloc3 = ext_lock3_pos + govt_lock3_pos + mh_lock3_pos + eco_lock3_pos + nega_lock3_pos + ty_lock3_pos + wfh_lock3_pos
+posloc4 = ext_lock4_pos + govt_lock4_pos + mh_lock4_pos + eco_lock4_pos + nega_lock4_pos + ty_lock4_pos + wfh_lock4_pos
+neuloc1 = ext_lock1_neu + govt_lock1_neu + mh_lock1_neu + eco_lock1_neu + nega_lock1_neu + ty_lock1_neu + wfh_lock1_neu
+neuloc2 = ext_lock2_neu + govt_lock2_neu + mh_lock2_neu + eco_lock2_neu + nega_lock2_neu + ty_lock2_neu + wfh_lock2_neu
+neuloc3 = ext_lock3_neu + govt_lock3_neu + mh_lock3_neu + eco_lock3_neu + nega_lock3_neu + ty_lock3_neu + wfh_lock3_neu
+neuloc4 = ext_lock4_neu + govt_lock4_neu + mh_lock4_neu + eco_lock4_neu + nega_lock4_neu + ty_lock4_neu + wfh_lock4_neu
+
+#if percentage is needed just do negloc1/negloc1+negloc2+negloc3+negloc4 and so on
 figoverall.add_trace(
-    go.Bar(y=[100,50,70,89],
+    go.Bar(y=[negloc1,negloc2,negloc3,negloc4],
                 x=lockdown,
                 name='# Negative',
                 textfont_color='white',
@@ -1055,7 +1219,7 @@ figoverall.add_trace(
 )
 
 figoverall.add_trace(
-    go.Bar(y=[100,50,70,89],
+    go.Bar(y=[posloc1,posloc2,posloc3,posloc4],
                 x=lockdown,
                 name='# Positive',
                 textfont_color='white',
@@ -1066,7 +1230,7 @@ figoverall.add_trace(
 )
 
 figoverall.add_trace(
-    go.Bar(y=[100,50,70,89],
+    go.Bar(y=[neuloc1,neuloc2,neuloc3,neuloc4],
                 x=lockdown,
                 name='# Neutral',
                 textfont_color='white',
@@ -1090,7 +1254,7 @@ figoverall.update_layout( title ="Bar Chart",
                 plot_bgcolor="#07031a",
                 uniformtext_minsize=8, 
                 uniformtext_mode='hide',
-                title_text="Popular Hashtags"
+                title_text="Overall Analysis of the Sentiments"
 
                 )
 #----------------------------------------------------------------------------------------------
@@ -1102,35 +1266,42 @@ def render_content(tab,sel_option,n):
     sel = dates[dates['day']==sel_option]
     global positive
     global negative
-    content='hi'
-        # print(cal)
+    global neutral
+    # content='hi'
+    # print(cal)
     try:
-            df=pd.read_json('count.json')
-            print(df['details'][0]['tweet'])
+        df=pd.read_json('count.json')
+        # print(df['details'][0])
+        # print(df['dt'])
     except:
-            print("cant")
+        print("cant")
     global pos
     global neg
+    global neu
     global time
     global tf2
     positive=df['pos'][0]
-
+    f ='%H:%M:%S'
+    # now = time.localtime()
     negative = df['neg'][0]
+    neutral = df['neu'][0]
     cal.loc[cal['val']=='positive','count']=positive
     cal.loc[cal['val']=='negative','count']=negative
+    cal.loc[cal['val']=='neutral','count']=neutral
     time=df["time"][0]
-    temp={'pos':positive,'neg':negative,'time':time,'text':df['details'][0]}
-        # print(temp)
-    temp=pd.DataFrame(temp,columns=['pos','neg','time','details'],index=[[1]])
-        # print(temp)
+    tp=df['details'][0]
+    temp={'pos':positive,'neg':negative,'neu':neutral,'time':df['time'][0],'text':[tp]}
+    # print(temp)
+    temp=pd.DataFrame(temp,columns=['pos','neg','neu','time','text'],index=[[1]])
+    # print(temp)
     tf2=pd.concat([tf2,temp],ignore_index=True)
-    tf2.drop_duplicates(subset=['details'],inplace=True)
-    print(len(tf2))
+    # tf2.drop_duplicates(subset=['text'],inplace=True)
+    print(tf2)
     x=list([20,30,204,309])
     y=list([90,345,234,234])
     figlive=px.bar(cal,x='val',y='count')
         # fig2=px.scatter(tf,x='time',y=[['pos','neg']],color=[['pos','neg']])
-    figlive2=px.scatter(tf2,x='time',y=['neg','pos'])
+    figlive2=px.scatter(tf2,x='time',y=['neg','pos','neu'])
     if tab == 'tab-1':
        return html.Div([
 
@@ -1144,8 +1315,7 @@ def render_content(tab,sel_option,n):
             figure=figlive2),
 ], style={'display':'block','padding':'0 0 0 20'})
 
-            ])
-        
+            ],style ={'background':'#25274d'})    
     elif tab == 'tab-6':
        return html.Div([
       html.Div([
@@ -1163,7 +1333,16 @@ def render_content(tab,sel_option,n):
                               title = "ScatterPlot",
                               xaxis =  {'title': 'Time'},
                               yaxis = {'title': 'Sentiments'},
-                              paper_bgcolor ="#07031a"
+                              paper_bgcolor ="#07031a",
+                              font=dict(
+                             family="Courier New,monospace",
+                    size=14,
+                    color='white'
+
+                      ),
+
+                          plot_bgcolor="#20031b",
+                
                           )
                       }
                   )
@@ -1172,18 +1351,54 @@ def render_content(tab,sel_option,n):
        html.Div([
             dcc.Graph(
             id="bar_chart",
-            figure=figchina,
+            figure=figty,
+            
          )]
             ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
 
         html.Div([
             dcc.Graph(
             id="bar_chart",
-            figure=figchina,
+            figure=fignega,
          )]
             ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
 
-       
+       html.Div([
+            dcc.Graph(
+            id="bar_chart",
+            figure=figwfh,
+         )]
+            ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
+
+        html.Div([
+            dcc.Graph(
+            id="bar_chart",
+            figure=figmh,
+         )]
+            ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
+
+        
+       html.Div([
+            dcc.Graph(
+            id="bar_chart",
+            figure=figeco,
+         )]
+            ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
+
+        html.Div([
+            dcc.Graph(
+            id="bar_chart",
+            figure=figgovt,
+         )]
+            ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
+
+       html.Div([
+            dcc.Graph(
+            id="bar_chart",
+            figure=figext,
+         )]
+            ,style={'display':'block','padding':'0 0 0 20'}),
+    
        html.Div([
             dcc.Graph(
             id="bar_chart",
@@ -1197,7 +1412,7 @@ def render_content(tab,sel_option,n):
             
 
 
-        ])
+        ],style ={'background':'#25274d'})
     elif tab == 'tab-2':
        return html.Div([
         
