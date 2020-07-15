@@ -1295,8 +1295,37 @@ def render_content(tab,sel_option,n):
     
     
     figlive=px.bar(cal,x='val',y='count')
-   
+    figlive.update_layout( title ="Bar Chart",
+                font=dict(
+                    family="Courier New,monospace",
+                    size=14,
+                    color='white'
+
+                      ),
+
+                paper_bgcolor ="#07031a",
+                plot_bgcolor="#07031a",
+                uniformtext_minsize=8, 
+                uniformtext_mode='hide',
+                title_text="Overall Analysis of the Sentiments"
+
+                )
     figlive2=px.scatter(tf2,x='time',y=['neg','pos','neu'])
+    figlive2.update_layout( title ="Bar Chart",
+                font=dict(
+                    family="Courier New,monospace",
+                    size=14,
+                    color='white'
+
+                      ),
+
+                paper_bgcolor ="#07031a",
+                plot_bgcolor="#07031a",
+                uniformtext_minsize=8, 
+                uniformtext_mode='hide',
+                title_text=" Analysis of the Sentiments"
+
+                )
     
     
     if tab == 'tab-1':
@@ -1403,14 +1432,7 @@ def render_content(tab,sel_option,n):
             figure=figoverall,
          )]
             ,style={'display':'block','padding':'0 0 0 20'}),
-    
-
-
-
-            
-
-
-        ],style ={'background':'#25274d'})
+            ],style ={'background':'#25274d'})
     elif tab == 'tab-2':
        return html.Div([
         
@@ -1473,7 +1495,7 @@ html.Div([
 
          ]
 
-        ,style={'width':'100%','display':'block','padding':'0 0 0 20'}),
+        ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
 
 
 
@@ -1544,7 +1566,7 @@ html.Div([
 
          ]
 
-        ,style={'width':'100%','display':'block','padding':'0 0 0 50'}),
+        ,style={'width':'50%','display':'inline-block','padding':'0 0 0 20'}),
 
 
 
