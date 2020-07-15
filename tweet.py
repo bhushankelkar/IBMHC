@@ -8,6 +8,7 @@ from tweepy import Stream
 from tweepy import OAuthHandler
 import json
 from textblob import TextBlob
+import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 import re
 from nltk.stem import WordNetLemmatizer #word stemmer class
@@ -22,7 +23,7 @@ from nltk.corpus import stopwords
 import nltk
 # import re
 import string
-
+# from datetime import timedelta
 
 
 "# -- coding: utf-8 --"
@@ -56,6 +57,8 @@ initime = time.time()
 
 ps = PorterStemmer()
 wnl = WordNetLemmatizer()
+plt.ion()
+import test
 
 ckey = 'WnyAgUaacX1YheRSJqwMhhZgR'
 csecret = 'LzHg7GuAfJNIsHRpRXEk72TaEjcG5RL9yl85c0rbI1V1pg6rHQ'
@@ -71,8 +74,18 @@ class listener(StreamListener):
         global initime
         global tl
         all_data = json.loads(data)
+        print(all_data)
         tweet = all_data["text"]
+        location=all_data['user']['location']
+        hashtags=[]
+        try:
+            for i in all_data['entities']['hashtags']:
+                hashtags.append(i['text'])
+            print("hastags ",hashtags)
+        except:
+            hashtags=[]
         dt=all_data['created_at']
+
         dt=dt.split(" ")
         local_datetime = datetime.now()
         dt=dt[3]
@@ -138,7 +151,7 @@ class listener(StreamListener):
         print(t)
         # print(loaded_model)
         # print(vectorizer)
-        tl.append({'tweet':tweet,'label':m[0]})
+        tl.append({'tweet':tweet,'label':m[0],'location':location,'hashtags':hashtags})
         global positive
         global negative
         global neutral
@@ -221,3 +234,5 @@ auth.set_access_token(atoken, asecret)
 
 twitterStream = Stream(auth, listener(count),lang='en',geocode="22.3511148,78.6677428,1km")
 twitterStream.filter(track=["#IndiaFightsCorona","covid19 india","corona india","#covid19#india","corona warriors","#cluelessbjp"])
+
+
