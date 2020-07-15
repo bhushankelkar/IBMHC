@@ -1282,7 +1282,6 @@ def render_content(tab,sel_option,n):
     global tf2
     positive=df['pos'][0]
     f ='%H:%M:%S'
-    # now = time.localtime()
     negative = df['neg'][0]
     neutral = df['neu'][0]
     cal.loc[cal['val']=='positive','count']=positive
@@ -1291,17 +1290,15 @@ def render_content(tab,sel_option,n):
     time=df["time"][0]
     tp=df['details'][0]
     temp={'pos':positive,'neg':negative,'neu':neutral,'time':df['time'][0],'text':[tp]}
-    # print(temp)
     temp=pd.DataFrame(temp,columns=['pos','neg','neu','time','text'],index=[[1]])
-    # print(temp)
     tf2=pd.concat([tf2,temp],ignore_index=True)
-    # tf2.drop_duplicates(subset=['text'],inplace=True)
-    print(tf2)
-    x=list([20,30,204,309])
-    y=list([90,345,234,234])
+    
+    
     figlive=px.bar(cal,x='val',y='count')
-        # fig2=px.scatter(tf,x='time',y=[['pos','neg']],color=[['pos','neg']])
+   
     figlive2=px.scatter(tf2,x='time',y=['neg','pos','neu'])
+    
+    
     if tab == 'tab-1':
        return html.Div([
 
@@ -1316,6 +1313,7 @@ def render_content(tab,sel_option,n):
 ], style={'display':'block','padding':'0 0 0 20'})
 
             ],style ={'background':'#25274d'})    
+    
     elif tab == 'tab-6':
        return html.Div([
       html.Div([
@@ -1330,7 +1328,7 @@ def render_content(tab,sel_option,n):
                               )
                           ],
                           'layout' : go.Layout(
-                              title = "ScatterPlot",
+                              title = "Time Series of Sentiments throughout the Lockdown",
                               xaxis =  {'title': 'Time'},
                               yaxis = {'title': 'Sentiments'},
                               paper_bgcolor ="#07031a",
